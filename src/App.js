@@ -1,26 +1,28 @@
 import React, { useEffect, useState } from 'react';
 import io from 'socket.io-client';
 
-// 서버 주소 (로컬 서버일 경우 localhost)
 const socket = io('https://chat-backend-6nc8.onrender.com');
 
 function App() {
+  const [nickname, setNickname] = useState('');
   const [message, setMessage] = useState('');
   const [chat, setChat] = useState([]);
 
   useEffect(() => {
-    // 채팅방 입장
     socket.emit('joinRoom', 'room1');
 
-    // 메시지 수신
-    socket.on('receiveMessage', (msg) => {
-      setChat((prev) => [...prev, msg]);
+    socket.on('receiveMessage', (data) => {
+      setChat((prev) => [...prev, data]);
     });
   }, []);
 
   const send = () => {
-    if (message.trim() !== '') {
-      socket.emit('sendMessage', { roomId: 'room1', message });
+    if (nickname.trim() && message.trim()) {
+      socket.emit('sendMessage', {
+        roomId: 'room1',
+        nickname,
+        message,
+      });
       setMessage('');
     }
   };
@@ -28,14 +30,22 @@ function App() {
   return (
     <div style={{ padding: '30px', fontFamily: 'Arial' }}>
       <h2>💬 실시간 채팅</h2>
+      <input
+        placeholder="닉네임 입력"
+        value={nickname}
+        onChange={(e) => setNickname(e.target.value)}
+        style={{ marginBottom: '10px', padding: '6px', width: '60%' }}
+      />
       <div style={{ border: '1px solid #ccc', padding: '10px', minHeight: '200px', marginBottom: '10px' }}>
         {chat.map((m, i) => (
-          <div key={i} style={{ marginBottom: '5px' }}>🗨️ {m}</div>
+          <div key={i}>
+            <strong>[{m.nickname} @ {m.ip}]</strong>: {m.message}
+          </div>
         ))}
       </div>
       <input
         type="text"
-        placeholder="메시지를 입력하세요..."
+        placeholder="메시지 입력"
         value={message}
         onChange={(e) => setMessage(e.target.value)}
         style={{ width: '80%', padding: '8px' }}
