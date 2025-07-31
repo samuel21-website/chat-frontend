@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import io from 'socket.io-client';
 
 // 서버 주소 (로컬 서버일 경우 localhost)
-const socket = io('http://localhost:5000');
+const socket = io('https://chat-backend-6nc8.onrender.com');
 
 function App() {
   const [message, setMessage] = useState('');
