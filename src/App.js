@@ -1,30 +1,34 @@
-import React, { useEffect, useState } from "react";
-import { io } from "socket.io-client";
+import React, { useState, useEffect } from "react";
+import io from "socket.io-client";
 import "./App.css";
 
 const socket = io("https://chat-backend-6nc8.onrender.com");
 
 function App() {
-  const [nickname, setNickname] = useState("");
   const [message, setMessage] = useState("");
-  const [chatList, setChatList] = useState([]);
+  const [nickname, setNickname] = useState("");
+  const [messages, setMessages] = useState([]);
 
   useEffect(() => {
-    socket.emit("joinRoom", "main");
+    const roomId = "main";
+    socket.emit("joinRoom", roomId);
 
-    socket.on("chatHistory", (messages) => {
-      setChatList(messages);
+    socket.on("chatHistory", (history) => {
+      setMessages(history);
     });
 
     socket.on("receiveMessage", (msg) => {
-      setChatList((prev) => [...prev, msg]);
+      setMessages((prev) => [...prev, msg]);
     });
 
-    return () => socket.disconnect();
+    return () => {
+      socket.off("chatHistory");
+      socket.off("receiveMessage");
+    };
   }, []);
 
   const handleSend = () => {
-    if (nickname.trim() && message.trim()) {
+    if (nickname && message) {
       socket.emit("sendMessage", {
         roomId: "main",
         nickname,
@@ -36,55 +40,63 @@ function App() {
 
   return (
     <div className="app">
-      <h1>💬 FNC - Chat</h1>
+      <h1 className="title">💬 Fking Nice Chat</h1>
 
-      <div className="nickname-input">
+      <div className="chat-box">
+        {messages.map((msg, i) => (
+          <div key={i} className="chat-line">
+            <span className="chat-item">{msg.nickname}</span> |
+            <span className="chat-item">{msg.ip}</span> |
+            <span className="chat-item">
+              {new Date(msg.time).toLocaleTimeString()}
+            </span> |
+            <span className="chat-item">{msg.message}</span>
+          </div>
+        ))}
+      </div>
+
+      <div className="input-area">
         <input
           type="text"
           placeholder="닉네임"
           value={nickname}
           onChange={(e) => setNickname(e.target.value)}
         />
-      </div>
-
-      <div className="chat-box">
-        {chatList.map((chat, idx) => (
-          <div key={idx} className="chat">
-            <strong>{chat.nickname}</strong> ({chat.ip})<br />
-            {chat.message}
-            <span className="time">{new Date(chat.time).toLocaleTimeString()}</span>
-          </div>
-        ))}
-      </div>
-
-      <div className="send-box">
         <input
           type="text"
-          placeholder="메시지 입력..."
+          placeholder="메시지를 입력하세요"
           value={message}
           onChange={(e) => setMessage(e.target.value)}
           onKeyDown={(e) => e.key === "Enter" && handleSend()}
         />
-        <button onClick={handleSend}>보내기</button>
+        <button onClick={handleSend}>전송</button>
       </div>
 
       {/* 광고 배너 */}
-      <div className="adfit-banner">
-        <ins className="kakao_ad_area"
-          style={{ display: "block" }}
+      <div className="ad-banner">
+        <ins
+          className="kakao_ad_area"
+          style={{ display: "none" }}
           data-ad-unit="DAN-6g82BnhMT7gbh8nR"
           data-ad-width="320"
-          data-ad-height="100">
-        </ins>
-        <script async src="//t1.daumcdn.net/kas/static/ba.min.js"></script>
+          data-ad-height="100"
+        ></ins>
+        <script
+          type="text/javascript"
+          src="//t1.daumcdn.net/kas/static/ba.min.js"
+          async
+        ></script>
       </div>
 
       {/* 약관 링크 */}
-      <div className="footer-link">
-        <a href="https://넣고싶은-약관-링크" target="_blank" rel="noopener noreferrer">
-          약관정책
+      <footer className="footer">
+        <a href="https://chatolate-privacy.netlify.app" target="_blank" rel="noreferrer">
+          이용약관
         </a>
-      </div>
+        &nbsp;|&nbsp;
+      
+        
+      </footer>
     </div>
   );
 }
