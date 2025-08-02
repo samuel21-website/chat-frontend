@@ -10,12 +10,18 @@ function App() {
   const chatEndRef = useRef(null);
 
   useEffect(() => {
-    // 브라우저 알림 권한 요청
+    // 광고 스크립트 로드 (AdFit)
+    const script = document.createElement('script');
+    script.async = true;
+    script.src = '//t1.daumcdn.net/kas/static/ba.min.js';
+    document.body.appendChild(script);
+  }, []);
+
+  useEffect(() => {
     if (Notification.permission !== 'granted') {
       Notification.requestPermission();
     }
 
-    // 소켓 연결 및 이벤트 등록
     socket.on('connect', () => {
       socket.emit('joinRoom', 'room1');
     });
@@ -27,19 +33,19 @@ function App() {
     socket.on('receiveMessage', (data) => {
       setChat((prev) => [...prev, data]);
 
-      // 🔔 브라우저 알림 띄우기
+      // 알림
       if (Notification.permission === 'granted') {
         new Notification(`[${data.nickname}]`, {
           body: data.message,
-          icon: '/logo.png', // 선택사항 (public 폴더에 파일 존재해야 함)
+          icon: '/logo.png',
         });
       }
     });
 
     return () => {
+      socket.off('connect');
       socket.off('chatHistory');
       socket.off('receiveMessage');
-      socket.off('connect');
     };
   }, []);
 
@@ -59,23 +65,23 @@ function App() {
   };
 
   return (
-    <div style={{ padding: '15px', fontFamily: 'Arial', maxWidth: '600px', margin: 'auto' }}>
+    <div style={{ maxWidth: '600px', margin: '0 auto', padding: '16px', fontFamily: 'Arial' }}>
       <h2 style={{ textAlign: 'center' }}>💬 FkingNiceChat</h2>
 
       <input
         placeholder="닉네임 입력"
         value={nickname}
         onChange={(e) => setNickname(e.target.value)}
-        style={{ marginBottom: '10px', padding: '8px', width: '100%' }}
+        style={{ width: '100%', padding: '8px', marginBottom: '10px' }}
       />
 
       <div style={{
         border: '1px solid #ccc',
         padding: '10px',
-        minHeight: '200px',
+        minHeight: '250px',
         maxHeight: '400px',
         overflowY: 'auto',
-        backgroundColor: '#f9f9f9',
+        background: '#f9f9f9',
         marginBottom: '10px'
       }}>
         {chat.map((m, i) => {
@@ -83,21 +89,20 @@ function App() {
             hour: '2-digit',
             minute: '2-digit',
           });
-
           return (
-            <div key={i}>
-              <strong>[{m.nickname} @ {m.ip}]</strong> ({time}): {m.message}
+            <div key={i} style={{ marginBottom: '6px' }}>
+              <strong>[{m.nickname}@{m.ip}]</strong> ({time}): {m.message}
             </div>
           );
         })}
         <div ref={chatEndRef} />
       </div>
 
-      <div style={{ display: 'flex', gap: '8px' }}>
+      <div style={{ display: 'flex', gap: '6px' }}>
         <input
           type="text"
-          placeholder="메시지 입력"
           value={message}
+          placeholder="메시지 입력"
           onChange={(e) => setMessage(e.target.value)}
           onKeyDown={(e) => e.key === 'Enter' && send()}
           style={{ flex: 1, padding: '10px' }}
@@ -109,11 +114,21 @@ function App() {
             backgroundColor: '#007bff',
             color: '#fff',
             border: 'none',
-            borderRadius: '5px'
+            borderRadius: '4px'
           }}
         >
           보내기
         </button>
+      </div>
+
+      {/* 👇👇👇 애드핏 광고 위치 👇👇👇 */}
+      <div style={{ textAlign: 'center', marginTop: '20px' }}>
+        <ins className="kakao_ad_area"
+             style={{ display: 'none' }}
+             data-ad-unit="DAN-6g82BnhMT7gbh8nR"
+             data-ad-width="320"
+             data-ad-height="100">
+        </ins>
       </div>
     </div>
   );
