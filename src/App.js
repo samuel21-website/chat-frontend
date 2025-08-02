@@ -1,96 +1,96 @@
 import React, { useEffect, useState } from 'react';
 import io from 'socket.io-client';
-import { BrowserRouter as Router, Routes, Route, Link } from 'react-router-dom';
-import PrivacyPolicy from './pages/PrivacyPolicy';
-import TermsOfService from './pages/TermsOfService';
-import CookiePolicy from './pages/CookiePolicy';
 import './App.css';
 
 const socket = io('https://chat-backend-6nc8.onrender.com');
 
 function App() {
-  const [roomId] = useState('main');
   const [nickname, setNickname] = useState('');
-  const [input, setInput] = useState('');
+  const [message, setMessage] = useState('');
   const [messages, setMessages] = useState([]);
 
   useEffect(() => {
-    socket.emit('joinRoom', roomId);
+    socket.emit('joinRoom', 'main');
 
     socket.on('chatHistory', (history) => {
       setMessages(history);
     });
 
-    socket.on('receiveMessage', (message) => {
-      setMessages((prev) => [...prev, message]);
+    socket.on('receiveMessage', (data) => {
+      setMessages((prev) => [...prev, data]);
 
-      if (document.visibilityState !== 'visible') {
+      // 알림
+      if (document.visibilityState !== 'visible' && data.nickname !== nickname) {
         if (Notification.permission === 'granted') {
-          new Notification(`${message.nickname}`, {
-            body: message.message,
-          });
+          new Notification(`${data.nickname}: ${data.message}`);
         }
       }
     });
 
-    return () => socket.disconnect();
-  }, [roomId]);
+    if (Notification.permission !== 'granted') {
+      Notification.requestPermission();
+    }
 
-  const sendMessage = () => {
-    if (!nickname.trim() || !input.trim()) return;
+    return () => {
+      socket.disconnect();
+    };
+  }, [nickname]);
 
-    socket.emit('sendMessage', { roomId, nickname, message: input });
-    setInput('');
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    if (!message.trim() || !nickname.trim()) return;
+
+    socket.emit('sendMessage', {
+      roomId: 'main',
+      nickname,
+      message,
+    });
+    setMessage('');
   };
 
-  const handleKeyDown = (e) => {
-    if (e.key === 'Enter') sendMessage();
+  const formatTime = (time) => {
+    const date = new Date(time);
+    return date.toLocaleTimeString();
   };
 
   return (
-    <Router>
-      <div className="App">
-        <h1>💬 채팅방</h1>
-        <div>
-          <input
-            type="text"
-            placeholder="닉네임"
-            value={nickname}
-            onChange={(e) => setNickname(e.target.value)}
-          />
-        </div>
-        <div className="chat-box">
-          {messages.map((msg, idx) => (
-            <div key={idx} className="chat-message">
-              <strong>{msg.nickname}</strong>: {msg.message}
-              <div className="chat-meta">
-                <span>{msg.ip}</span> | <span>{new Date(msg.time).toLocaleTimeString()}</span>
-              </div>
-            </div>
-          ))}
-        </div>
-        <input
-          type="text"
-          placeholder="메시지 입력"
-          value={input}
-          onChange={(e) => setInput(e.target.value)}
-          onKeyDown={handleKeyDown}
-        />
-        <button onClick={sendMessage}>전송</button>
+    <div className="container">
+      <h1>실시간 채팅</h1>
 
-        <footer style={{ marginTop: '40px', textAlign: 'center', fontSize: '14px' }}>
-          <Link to="/privacy" style={{ margin: '0 10px' }}>개인정보처리방침</Link>
-          <Link to="/terms" style={{ margin: '0 10px' }}>이용약관</Link>
-          <Link to="/cookies" style={{ margin: '0 10px' }}>쿠키 정책</Link>
-        </footer>
+      <input
+        type="text"
+        value={nickname}
+        onChange={(e) => setNickname(e.target.value)}
+        placeholder="닉네임"
+        className="input"
+      />
+
+      <div className="chat-box">
+        {messages.map((msg, i) => (
+          <div key={i} className="chat-message">
+            <strong>{msg.nickname}</strong> [{msg.ip}] 🕒 {formatTime(msg.time)}:
+            <span className="message"> {msg.message}</span>
+          </div>
+        ))}
       </div>
 
-      <Routes>
-        <Route path="/privacy" element={<PrivacyPolicy />} />
-        <Route path="/terms" element={<TermsOfService />} />
-        <Route path="/cookies" element={<CookiePolicy />} />
-      </Routes>
-    </Router>
+      <form onSubmit={handleSubmit}>
+        <input
+          type="text"
+          value={message}
+          onChange={(e) => setMessage(e.target.value)}
+          placeholder="메시지를 입력하세요"
+          className="input"
+        />
+        <button type="submit" className="btn">전송</button>
+      </form>
+
+      <footer>
+        <a href="/terms" target="_blank" rel="noreferrer">이용약관</a>
+        <a href="/privacy" target="_blank" rel="noreferrer">개인정보처리방침</a>
+        <a href="/cookies" target="_blank" rel="noreferrer">쿠키 정책</a>
+      </footer>
+    </div>
   );
 }
 
