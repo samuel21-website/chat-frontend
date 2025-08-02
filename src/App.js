@@ -1,136 +1,100 @@
-import React, { useEffect, useState, useRef } from 'react';
-import io from 'socket.io-client';
+import React, { useState, useEffect } from 'react';
+import { BrowserRouter as Router, Routes, Route, Link } from 'react-router-dom';
+import { io } from 'socket.io-client';
+import TermsOfService from './pages/TermsOfService';
+import PrivacyPolicy from './pages/PrivacyPolicy';
+import CookiePolicy from './pages/CookiePolicy';
 
 const socket = io('https://chat-backend-6nc8.onrender.com');
 
-function App() {
+function ChatPage() {
+  const [roomId] = useState('default');
   const [nickname, setNickname] = useState('');
-  const [message, setMessage] = useState('');
-  const [chat, setChat] = useState([]);
-  const chatEndRef = useRef(null);
+  const [input, setInput] = useState('');
+  const [messages, setMessages] = useState([]);
 
   useEffect(() => {
-    // 광고 스크립트 로드 (AdFit)
-    const script = document.createElement('script');
-    script.async = true;
-    script.src = '//t1.daumcdn.net/kas/static/ba.min.js';
-    document.body.appendChild(script);
-  }, []);
+    socket.emit('joinRoom', roomId);
+
+    socket.on('chatHistory', (history) => {
+      setMessages(history);
+    });
+
+    socket.on('receiveMessage', (msg) => {
+      setMessages((prev) => [...prev, msg]);
+      if (Notification.permission === 'granted') {
+        new Notification(`${msg.nickname}님의 메시지`, { body: msg.message });
+      }
+    });
+
+    return () => {
+      socket.off('chatHistory');
+      socket.off('receiveMessage');
+    };
+  }, [roomId]);
+
+  const sendMessage = () => {
+    if (nickname.trim() === '' || input.trim() === '') return;
+    socket.emit('sendMessage', { roomId, nickname, message: input });
+    setInput('');
+  };
 
   useEffect(() => {
     if (Notification.permission !== 'granted') {
       Notification.requestPermission();
     }
-
-    socket.on('connect', () => {
-      socket.emit('joinRoom', 'room1');
-    });
-
-    socket.on('chatHistory', (messages) => {
-      setChat(messages);
-    });
-
-    socket.on('receiveMessage', (data) => {
-      setChat((prev) => [...prev, data]);
-
-      // 알림
-      if (Notification.permission === 'granted') {
-        new Notification(`[${data.nickname}]`, {
-          body: data.message,
-          icon: '/logo.png',
-        });
-      }
-    });
-
-    return () => {
-      socket.off('connect');
-      socket.off('chatHistory');
-      socket.off('receiveMessage');
-    };
   }, []);
 
-  useEffect(() => {
-    chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [chat]);
-
-  const send = () => {
-    if (nickname.trim() && message.trim()) {
-      socket.emit('sendMessage', {
-        roomId: 'room1',
-        nickname,
-        message,
-      });
-      setMessage('');
-    }
-  };
-
   return (
-    <div style={{ maxWidth: '600px', margin: '0 auto', padding: '16px', fontFamily: 'Arial' }}>
-      <h2 style={{ textAlign: 'center' }}>💬 Chatolate</h2>
-
+    <div style={{ padding: '2rem', maxWidth: 600, margin: 'auto' }}>
+      <h2>실시간 채팅</h2>
       <input
+        type="text"
         placeholder="닉네임 입력"
         value={nickname}
         onChange={(e) => setNickname(e.target.value)}
-        style={{ width: '100%', padding: '8px', marginBottom: '10px' }}
+        style={{ width: '100%', marginBottom: '0.5rem' }}
       />
-
-      <div style={{
-        border: '1px solid #ccc',
-        padding: '10px',
-        minHeight: '250px',
-        maxHeight: '400px',
-        overflowY: 'auto',
-        background: '#f9f9f9',
-        marginBottom: '10px'
-      }}>
-        {chat.map((m, i) => {
-          const time = new Date(m.time).toLocaleTimeString([], {
-            hour: '2-digit',
-            minute: '2-digit',
-          });
-          return (
-            <div key={i} style={{ marginBottom: '6px' }}>
-              <strong>[{m.nickname}@{m.ip}]</strong> ({time}): {m.message}
-            </div>
-          );
-        })}
-        <div ref={chatEndRef} />
+      <div style={{ border: '1px solid #ccc', padding: '1rem', height: 300, overflowY: 'scroll' }}>
+        {messages.map((msg, idx) => (
+          <div key={idx}>
+            <strong>{msg.nickname}</strong> ({msg.ip}) - {new Date(msg.time).toLocaleString()}
+            <br />
+            {msg.message}
+            <hr />
+          </div>
+        ))}
       </div>
-
-      <div style={{ display: 'flex', gap: '6px' }}>
-        <input
-          type="text"
-          value={message}
-          placeholder="메시지 입력"
-          onChange={(e) => setMessage(e.target.value)}
-          onKeyDown={(e) => e.key === 'Enter' && send()}
-          style={{ flex: 1, padding: '10px' }}
-        />
-        <button
-          onClick={send}
-          style={{
-            padding: '10px 15px',
-            backgroundColor: '#007bff',
-            color: '#fff',
-            border: 'none',
-            borderRadius: '4px'
-          }}
-        >
-          보내기
-        </button>
-      </div>
-
-      {/* 👇👇👇 애드핏 광고 위치 👇👇👇 */}
-      <div style={{ textAlign: 'center', marginTop: '20px' }}>
-        <ins className="kakao_ad_area"
-             style={{ display: 'none' }}
-             data-ad-unit="DAN-6g82BnhMT7gbh8nR"
-             data-ad-width="320"
-             data-ad-height="100">
-        </ins>
-      </div>
+      <input
+        type="text"
+        placeholder="메시지 입력"
+        value={input}
+        onChange={(e) => setInput(e.target.value)}
+        style={{ width: '100%', marginTop: '0.5rem' }}
+        onKeyDown={(e) => e.key === 'Enter' && sendMessage()}
+      />
+      <button onClick={sendMessage} style={{ width: '100%', marginTop: '0.5rem' }}>
+        보내기
+      </button>
+      <footer style={{ marginTop: '2rem', textAlign: 'center', fontSize: '0.9rem' }}>
+        <Link to="/terms">이용약관</Link> |{' '}
+        <Link to="/privacy">개인정보처리방침</Link> |{' '}
+        <Link to="/cookies">쿠키 정책</Link>
+      </footer>
     </div>
+  );
+}
+
+function App() {
+  return (
+    <Router>
+      <Routes>
+        <Route path="/" element={<ChatPage />} />
+        <Route path="/terms" element={<TermsOfService />} />
+        <Route path="/privacy" element={<PrivacyPolicy />} />
+        <Route path="/cookies" element={<CookiePolicy />} />
+      </Routes>
+    </Router>
   );
 }
 
