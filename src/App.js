@@ -66,7 +66,7 @@ function App() {
 
   return (
     <div style={{ maxWidth: '600px', margin: '0 auto', padding: '16px', fontFamily: 'Arial' }}>
-      <h2 style={{ textAlign: 'center' }}>💬 FkingNiceChat</h2>
+      <h2 style={{ textAlign: 'center' }}>💬 Chatolate</h2>
 
       <input
         placeholder="닉네임 입력"
