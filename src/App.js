@@ -1,96 +1,55 @@
-import React, { useEffect, useState } from 'react';
-import io from 'socket.io-client';
+// src/App.js
+import React, { useEffect, useRef, useState } from 'react';
+import { BrowserRouter as Router, Routes, Route, Link } from 'react-router-dom';
+import ChatRoom from './ChatRoom';
+import Terms from './pages/Terms';
+import Privacy from './pages/Privacy';
+import Cookie from './pages/Cookie';
 import './App.css';
 
-const socket = io('https://chat-backend-6nc8.onrender.com');
-
 function App() {
-  const [nickname, setNickname] = useState('');
-  const [message, setMessage] = useState('');
-  const [messages, setMessages] = useState([]);
+  const adRef = useRef(null);
+  const [isAdLoaded, setIsAdLoaded] = useState(false);
 
   useEffect(() => {
-    socket.emit('joinRoom', 'main');
-
-    socket.on('chatHistory', (history) => {
-      setMessages(history);
-    });
-
-    socket.on('receiveMessage', (data) => {
-      setMessages((prev) => [...prev, data]);
-
-      // 알림
-      if (document.visibilityState !== 'visible' && data.nickname !== nickname) {
-        if (Notification.permission === 'granted') {
-          new Notification(`${data.nickname}: ${data.message}`);
-        }
-      }
-    });
-
-    if (Notification.permission !== 'granted') {
-      Notification.requestPermission();
+    // 광고 스크립트 추가
+    if (!isAdLoaded) {
+      const script = document.createElement('script');
+      script.async = true;
+      script.src = '//t1.daumcdn.net/kas/static/ba.min.js';
+      script.onload = () => setIsAdLoaded(true);
+      adRef.current?.appendChild(script);
     }
-
-    return () => {
-      socket.disconnect();
-    };
-  }, [nickname]);
-
-  const handleSubmit = (e) => {
-    e.preventDefault();
-    if (!message.trim() || !nickname.trim()) return;
-
-    socket.emit('sendMessage', {
-      roomId: 'main',
-      nickname,
-      message,
-    });
-    setMessage('');
-  };
-
-  const formatTime = (time) => {
-    const date = new Date(time);
-    return date.toLocaleTimeString();
-  };
+  }, [isAdLoaded]);
 
   return (
-    <div className="container">
-      <h1>실시간 채팅</h1>
+    <Router>
+      <div className="App">
+        <nav>
+          <Link to="/">채팅</Link> |{" "}
+          <Link to="/terms">이용약관</Link> |{" "}
+          <Link to="/privacy">개인정보처리방침</Link> |{" "}
+          <Link to="/cookie">쿠키정책</Link>
+        </nav>
 
-      <input
-        type="text"
-        value={nickname}
-        onChange={(e) => setNickname(e.target.value)}
-        placeholder="닉네임"
-        className="input"
-      />
+        <Routes>
+          <Route path="/" element={<ChatRoom />} />
+          <Route path="/terms" element={<Terms />} />
+          <Route path="/privacy" element={<Privacy />} />
+          <Route path="/cookie" element={<Cookie />} />
+        </Routes>
 
-      <div className="chat-box">
-        {messages.map((msg, i) => (
-          <div key={i} className="chat-message">
-            <strong>{msg.nickname}</strong> [{msg.ip}] 🕒 {formatTime(msg.time)}:
-            <span className="message"> {msg.message}</span>
-          </div>
-        ))}
+        {/* 광고 배너 영역 */}
+        <div className="ad-banner" ref={adRef}>
+          <ins className="kakao_ad_area"
+            style={{ display: 'none' }}
+            data-ad-unit="DAN-6g82BnhMT7gbh8nR"  // ← 이 부분은 당신의 광고 단위 ID로 교체!
+            data-ad-width="320"
+            data-ad-height="100">
+          </ins>
+        </div>
       </div>
-
-      <form onSubmit={handleSubmit}>
-        <input
-          type="text"
-          value={message}
-          onChange={(e) => setMessage(e.target.value)}
-          placeholder="메시지를 입력하세요"
-          className="input"
-        />
-        <button type="submit" className="btn">전송</button>
-      </form>
-
-      <footer>
-        <a href="/terms" target="_blank" rel="noreferrer">이용약관</a>
-        <a href="/privacy" target="_blank" rel="noreferrer">개인정보처리방침</a>
-        <a href="/cookies" target="_blank" rel="noreferrer">쿠키 정책</a>
-      </footer>
-    </div>
+    </Router>
   );
 }
 
