@@ -75,11 +75,20 @@ function App() {
         backgroundColor: '#fafafa',
         fontSize: '0.95rem'
       }}>
-        {chat.map((m, i) => (
-          <div key={i}>
-            <strong>[{m.nickname} @ {m.ip}]</strong>: {m.message}
-          </div>
-        ))}
+        {chat.map((m, i) => {
+  const time = new Date(m.time).toLocaleTimeString([], {
+    hour: '2-digit',
+    minute: '2-digit',
+  });
+
+  return (
+    <div key={i}>
+      <strong>[{m.nickname} @ {m.ip}]</strong> ({time}): {m.message}
+    </div>
+  );
+})}
+
+       
         <div ref={chatEndRef}></div>
       </div>
 
