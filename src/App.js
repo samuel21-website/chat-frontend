@@ -40,7 +40,7 @@ function App() {
 
   return (
     <div className="app">
-      <h1 className="title">💬 Fking Nice Chat</h1>
+      <h1 className="title">💬 Chatolate</h1>
 
       <div className="chat-box">
         {messages.map((msg, i) => (
