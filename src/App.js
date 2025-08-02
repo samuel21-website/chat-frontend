@@ -37,6 +37,7 @@ function App() {
   return (
     <div className="app">
       <h1>💬 FNC - Chat</h1>
+
       <div className="nickname-input">
         <input
           type="text"
@@ -45,6 +46,7 @@ function App() {
           onChange={(e) => setNickname(e.target.value)}
         />
       </div>
+
       <div className="chat-box">
         {chatList.map((chat, idx) => (
           <div key={idx} className="chat">
@@ -54,6 +56,7 @@ function App() {
           </div>
         ))}
       </div>
+
       <div className="send-box">
         <input
           type="text"
@@ -65,7 +68,7 @@ function App() {
         <button onClick={handleSend}>보내기</button>
       </div>
 
-      {/* 📢 광고 배너 */}
+      {/* 광고 배너 */}
       <div className="adfit-banner">
         <ins className="kakao_ad_area"
           style={{ display: "block" }}
@@ -74,6 +77,13 @@ function App() {
           data-ad-height="100">
         </ins>
         <script async src="//t1.daumcdn.net/kas/static/ba.min.js"></script>
+      </div>
+
+      {/* 약관 링크 */}
+      <div className="footer-link">
+        <a href="https://넣고싶은-약관-링크" target="_blank" rel="noopener noreferrer">
+          약관정책
+        </a>
       </div>
     </div>
   );
